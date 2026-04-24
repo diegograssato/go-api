@@ -13,21 +13,38 @@ build:
 run:
 	@go run cmd/api/main.go
 # Create DB container
-docker-run:
-	@if docker compose up --build 2>/dev/null; then \
+db-run:
+	@if docker compose -f docker-compose-db.yml up --build 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
-		docker-compose up --build; \
+		docker-compose -f docker-compose-db.yml up --build; \
+	fi
+
+# Shutdown DB container
+db-down:
+	@if docker compose -f docker-compose-db.yml down 2>/dev/null; then \
+		: ; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose -f docker-compose-db.yml down; \
+	fi
+
+docker-run:
+	@if docker compose -f docker-compose-db.yml -f docker-compose.yml  up --build 2>/dev/null; then \
+		: ; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose -f docker-compose-db.yml -f docker-compose.yml up --build; \
 	fi
 
 # Shutdown DB container
 docker-down:
-	@if docker compose down 2>/dev/null; then \
+	@if docker compose -f docker-compose-db.yml -f docker-compose.yml down 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
-		docker-compose down; \
+		docker-compose -f docker-compose-db.yml -f docker-compose.yml down; \
 	fi
 
 # Test the application
