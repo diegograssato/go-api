@@ -139,7 +139,8 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
   deploy:
-    needs: [build, test]
+    name: Deploy Application
+    needs: [build, image]
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
