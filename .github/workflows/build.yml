@@ -46,19 +46,14 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.9'
-          cache: true          
-
-      # - name: Verificar Vulnerabilidades (govulncheck)
-      #   uses: golang/govulncheck-action@v1
-      #   with:
-      #      go-version-input: 1.26.1
-      #      go-package: ./...  
+          cache: true           
       - name: Verificar Vulnerabilidades (govulncheck)
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...         
-        
+      
+                
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -79,7 +74,7 @@ jobs:
 
 
   build:
-    name: Build
+    name: Build Application
     runs-on: ubuntu-latest
     needs: [lint, vulnerabilidades, test]
     steps:
@@ -96,3 +91,24 @@ jobs:
 
       - name: Build
         run: make build
+
+  image:
+    name: Build Image and Scan Vulnerabilities
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Build an image from Dockerfile
+        run: docker build -t docker.io/diegograssato/go-api:${{ github.sha }} .
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'docker.io/diegograssato/go-api:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
