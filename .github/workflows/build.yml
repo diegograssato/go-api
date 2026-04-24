@@ -1,42 +1,87 @@
-name: build
+name: Go
 
 on:
+  # triggers the execution of jobs when committed to the main branch
   push:
+    branches:
+      - main
+  # trigger execution of jobs when merging to main branch
   pull_request:
-
+    branches:
+      - main
 
 jobs:
-  build:
+
+  lint:
+    name: Golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v5
-
-      - name: Configurar Go
-        uses: actions/setup-go@v5
+      - name: Check out code
+        uses: actions/checkout@v6
         with:
-          go-version: '1.26' # Ou use 'stable' para a versão mais recente
-          cache: true
+          fetch-depth: 0
 
-      - name: Verify dependencies
-        run: go mod verify
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+
+      - name: Lint Go Code
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+          golangci-lint run ./... 
+
+  vulnerabilidades:
+    name: Vulnerabilidades
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+ 
+      - name: Verificar Vulnerabilidades (govulncheck)
+        uses: golang/govulncheck-action@v1        
+        
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+
+      - name: Run Unit tests
+        run: go test -count=1 -short ./...
+ 
+
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
 
       - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -v ./...
-
-      - name: Test integration
-        run: go test ../../internal/database -v
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     steps:
-#     - uses: actions/checkout@v5
-#     - name: Build the Docker image with tzdata embedded in go binary
-#       run: |
-#         #docker build -t golang-scratch-test --pull .
-#         docker buildx build  -t golang-scratch-test .
-#         docker run --rm golang-scratch-test 
+        run: make build

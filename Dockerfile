@@ -1,7 +1,7 @@
 # Stage 1: Build the binary
 FROM golang:alpine AS builder
 
-RUN apk add --no-cache gcc musl-dev git
+RUN apk add --no-cache gcc musl-dev git ca-certificates tzdata && update-ca-certificates
 # Create appuser.
 ENV USER=scratchuser
 ENV UID=10001 
@@ -18,7 +18,8 @@ RUN adduser \
 WORKDIR /app
 # Copy dependency files first to leverage Docker cache
 COPY go.mod go.sum ./
-RUN go mod download
+ENV GO111MODULE=on
+RUN  go mod download && go mod verify
 
 # Copy the rest of the source code
 COPY . .
@@ -34,9 +35,14 @@ WORKDIR /app
 
 # Copy only the compiled binary from the builder stage
 COPY --from=builder /app/main /bin/server
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
 
-USER scratchuser
+# Use an unprivileged user.
+USER scratchuser:scratchuser
+
 # Expose the application port
 ARG PORT
 ENV PORT=$PORT
