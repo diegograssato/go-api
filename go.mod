@@ -1,6 +1,6 @@
 module api-radius
 
-go 1.25.0
+go 1.25.2
 
 require (
 	github.com/gin-contrib/cors v1.7.7
