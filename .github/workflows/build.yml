@@ -106,23 +106,6 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: 'docker.io/diegograssato/go-api:${{ github.sha }}'
-          format: 'sarif'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          output: 'trivy-results.sarif'
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-results.sarif'     
-
-
-      - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
           scan-type: config
           hide-progress: true
           output: trivy.txt
