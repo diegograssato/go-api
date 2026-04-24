@@ -4,10 +4,13 @@
 all: build test
 
 build:
-	@echo "Building..."
-	
-	
+	@echo "Building..."	
 	@go build -o main cmd/api/main.go
+	@if [ -f main ]; then \
+		echo "Build successful...."; ls -la main; \
+	else \
+		echo "Build failed...."; ls -la .; \
+	fi
 
 # Run the application
 run:
@@ -50,7 +53,7 @@ docker-down:
 # Test the application
 test:
 	@echo "Testing..."
-	@go test ./... -v
+	@go test -short ./... -v
 # Integrations Tests for the application
 itest:
 	@echo "Running integration tests..."
