@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v5
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26' # Ou use 'stable' para a versão mais recente
+          cache: true
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Test integration
+        run: go test ../../internal/database -v
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v5
+#     - name: Build the Docker image with tzdata embedded in go binary
+#       run: |
+#         #docker build -t golang-scratch-test --pull .
+#         docker buildx build  -t golang-scratch-test .
+#         docker run --rm golang-scratch-test 
