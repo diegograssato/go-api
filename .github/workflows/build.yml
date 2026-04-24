@@ -73,6 +73,13 @@ jobs:
         run: make test
 
 
+      - name: Run coverage tests
+        run: go test ./... -coverprofile=coverage.txt
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   build:
     name: Build Application
     runs-on: ubuntu-latest
