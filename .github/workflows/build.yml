@@ -125,9 +125,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-      # - name: Build an image from Dockerfile
-      #   run: docker build -t docker.io/diegograssato/go-api:${{ github.sha }} .
+          fetch-depth: 0 
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -138,37 +136,38 @@ jobs:
           context: .
           load: true # Carrega a imagem no daemon local do Docker para o Trivy acessar
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest 
-          outputs: type=docker,dest=/tmp/${{ secrets.APPLICATION_NAME }}.tar #
-           
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          input: /tmp/${{ secrets.APPLICATION_NAME }}.tar # Escaneia o arquivo tar diretamente
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Upload image
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp/${{ secrets.APPLICATION_NAME }}.tar
-          retention-days: 1         
-
   deploy:
     name: Deploy Application
     needs: [build, image]
     runs-on: ubuntu-latest
     steps:
-
-      - name: Download Image Artifact
-        uses: actions/download-artifact@v4
+      - name: Check out code
+        uses: actions/checkout@v6
         with:
-          name: docker-image
-          path: /tmp        
+          fetch-depth: 0 
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Load local image
+        uses: docker/build-push-action@v6
+        with:
+          context: . 
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest 
+          cache-from: type=gha 
       
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -177,13 +176,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
    
 
-      - name: Load, Tag and Push
-        run: |
-          # 1. Carrega a imagem do arquivo .tar para o Docker local
-          docker load --input /tmp/${{ secrets.APPLICATION_NAME }}.tar
-          
-          # 2. Renomeia (tag) para o padrão do DockerHub: usuario/repo:tag
-          docker tag ${{ secrets.APPLICATION_NAME }}:latest ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest
-          
-          # 3. Faz o push
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.APPLICATION_NAME }}:latest
+          cache-from: type=gha # Reutiliza o cache do job anterior para ser instantâneo
